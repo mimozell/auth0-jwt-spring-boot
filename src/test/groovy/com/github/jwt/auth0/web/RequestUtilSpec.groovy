@@ -2,6 +2,7 @@ package com.github.jwt.auth0.web
 
 import com.github.jwt.auth0.config.Auth0JwtConfig
 import org.apache.commons.codec.binary.Base64
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -46,6 +47,20 @@ class RequestUtilSpec extends Specification {
         responseEntity.statusCode == HttpStatus.OK
         responseEntity.body != "A content"
         responseEntity.body == "A new content"
+    }
+
+    def "Return status code 200 OK with list body"() {
+        given:
+        def result = ["test", "another test"]
+
+        when:
+        def responseEntity = requestUtil.exchangeAsList("http://localhost", HttpMethod.GET, new ParameterizedTypeReference<List<String>>() {})
+
+        then:
+        1 * restTemplate.exchange(_ as String, _ as HttpMethod, _ as HttpEntity, _ as ParameterizedTypeReference) >> ResponseEntity.ok(result)
+        1 * jwtHeader.getJwt() >> Optional.empty()
+        responseEntity.statusCode == HttpStatus.OK
+        responseEntity.body == result
     }
 
     def "No authorization header when missing username/password"() {

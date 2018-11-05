@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
 
 @Slf4j
 @Component
@@ -36,9 +39,23 @@ public class RequestUtil {
         return createExchangeRequest(url, method, responseType, body);
     }
 
+    public <T> ResponseEntity<List<T>> exchangeAsList(String url, HttpMethod method, ParameterizedTypeReference<List<T>> responseType) {
+        return createExchangeAsList(url, method, responseType);
+    }
+
     private <T> ResponseEntity<T> createExchangeRequest(String url, HttpMethod method, Class<T> responseType, Object body) {
         try {
             ResponseEntity<T> responseEntity = restTemplate.exchange(url, method, createRequestEntity(body), responseType);
+            return ResponseEntity.status(responseEntity.getStatusCode()).body(responseEntity.getBody());
+        } catch (HttpClientErrorException e) {
+            log.warn("Http client error, url:{} status-code:{} message:{}", url, e.getStatusCode(), e.getMessage());
+            return new ResponseEntity<>(e.getStatusCode());
+        }
+    }
+
+    private <T> ResponseEntity<List<T>> createExchangeAsList(String url, HttpMethod method, ParameterizedTypeReference<List<T>> responseType) {
+        try {
+            ResponseEntity<List<T>> responseEntity = restTemplate.exchange(url, method, createRequestEntity(), responseType);
             return ResponseEntity.status(responseEntity.getStatusCode()).body(responseEntity.getBody());
         } catch (HttpClientErrorException e) {
             log.warn("Http client error, url:{} status-code:{} message:{}", url, e.getStatusCode(), e.getMessage());
